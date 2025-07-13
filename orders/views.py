@@ -5,6 +5,9 @@ from .forms import OrderCreateForm
 from cart.cart import Cart
 from django.shortcuts import get_object_or_404
 from .models import Order
+from orders.tasks import order_created
+
+
 
 
 def order_create(request):
@@ -21,6 +24,8 @@ def order_create(request):
                     quantity=item['quantity']
                 )
             cart.clear()
+            # launch asynchronous task
+            order_created.delay(order.id)
 
             # ✅ Add message
             messages.success(request, f"✅ Your order #{order.id} has been placed successfully!")
@@ -31,6 +36,6 @@ def order_create(request):
         form = OrderCreateForm()
     return render(request, 'orders/order/create.html', {'cart': cart, 'form': form})
 
-def order_created(request, order_id):
+def order_created_view(request, order_id):
     order = get_object_or_404(Order, id=order_id)
     return render(request, 'orders/order/created.html', {'order': order})
